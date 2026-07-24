@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f6f7fb" />
+  <title>Suivi des projets électriques MT / BT</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">⚡</div>
+        <div>
+          <strong>Projets électriques</strong>
+          <span>MT / BT</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="projects"><span>▦</span> Projets</button>
+        <button class="nav-item" data-view="gantt"><span>▤</span> Gantt</button>
+        <button class="nav-item" data-view="budgets"><span>CHF</span> Budgets</button>
+        <button class="nav-item" data-view="users"><span>👥</span> Utilisateurs</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <label for="activeUserSelect">Utilisateur actif</label>
+        <select id="activeUserSelect"></select>
+        <small>Les projets sont enregistrés dans ce navigateur.</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <button class="icon-button mobile-only" id="toggleSidebar" title="Menu">☰</button>
+          <h1 id="pageTitle">Suivi des projets en cours</h1>
+          <p id="pageSubtitle">Gestion des projets électriques MT et BT</p>
+        </div>
+
+        <div class="top-actions">
+          <button class="button secondary" id="printBtn">🖨 Imprimer</button>
+          <button class="button secondary" id="shareBtn">↗ Partager</button>
+          <button class="button primary" id="newProjectBtn">＋ Nouveau projet</button>
+        </div>
+      </header>
+
+      <section class="view active" id="projectsView">
+        <div class="stats-grid">
+          <article class="stat-card"><span>Projets affichés</span><strong id="statProjects">0</strong></article>
+          <article class="stat-card"><span>BT</span><strong id="statBT">0</strong></article>
+          <article class="stat-card"><span>MT</span><strong id="statMT">0</strong></article>
+          <article class="stat-card"><span>Budget disponible</span><strong id="statBudget">CHF 0</strong></article>
+        </div>
+
+        <div class="toolbar card">
+          <div class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="Rechercher un projet, une commune, un descriptif…" /></div>
+          <select id="filterVoltage" class="control"><option value="">Toutes tensions</option><option value="BT">BT</option><option value="MT">MT</option></select>
+          <select id="filterStatus" class="control"><option value="">Tous états</option><option value="En cours">En cours</option><option value="En attente">En attente</option><option value="En étude">En étude</option><option value="Terminé">Terminé</option><option value="Suspendu">Suspendu</option></select>
+          <select id="filterOwner" class="control"><option value="">Tous les utilisateurs</option></select>
+          <button class="button secondary" id="resetFiltersBtn">Réinitialiser</button>
+          <button class="button secondary" id="exportCsvBtn">CSV</button>
+          <button class="button secondary" id="exportJsonBtn">JSON</button>
+          <label class="button secondary file-button">Importer<input id="importJsonInput" type="file" accept="application/json,.json" /></label>
+        </div>
+
+        <div class="table-card card">
+          <div class="table-scroll">
+            <table class="project-table">
+              <thead><tr><th>#</th><th>Tension</th><th>Commune</th><th>Chantier</th><th>Descriptif</th><th>Responsable</th><th>Budget</th><th>État</th><th></th></tr></thead>
+              <tbody id="projectsTableBody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state hidden" id="projectsEmpty"><div>⚡</div><h3>Aucun projet ne correspond aux filtres</h3><p>Modifiez les filtres ou créez un nouveau projet.</p></div>
+        </div>
+      </section>
+
+      <section class="view" id="ganttView">
+        <div class="toolbar card">
+          <select id="ganttMode" class="control"><option value="all">Tous les projets</option><option value="selected">Projet sélectionné</option></select>
+          <select id="ganttOwnerFilter" class="control"><option value="">Tous les utilisateurs</option></select>
+          <select id="ganttProjectSelect" class="control"></select>
+          <button class="button secondary" id="ganttPrevBtn">← Période</button>
+          <button class="button secondary" id="ganttTodayBtn">Aujourd’hui</button>
+          <button class="button secondary" id="ganttNextBtn">Période →</button>
+        </div>
+
+        <div class="gantt-card card">
+          <div class="gantt-header-row">
+            <div><h2 id="ganttTitle">Planning général</h2><p id="ganttHint">Vue synthétique de tous les projets</p></div>
+            <div class="legend"><span><i class="legend-bt"></i> BT</span><span><i class="legend-mt"></i> MT</span><span><i class="legend-phase"></i> Phase SIA</span></div>
+          </div>
+          <div class="gantt-wrap" id="ganttWrap"><div class="gantt-empty">Ajoutez des dates SIA pour afficher le planning.</div></div>
+        </div>
+      </section>
+
+      <section class="view" id="budgetsView">
+        <div class="stats-grid budget-stats">
+          <article class="stat-card"><span>Budget total</span><strong id="budgetTotal">CHF 0</strong></article>
+          <article class="stat-card"><span>Engagé</span><strong id="budgetCommitted">CHF 0</strong></article>
+          <article class="stat-card"><span>Dépensé</span><strong id="budgetActual">CHF 0</strong></article>
+          <article class="stat-card"><span>Disponible</span><strong id="budgetRemaining">CHF 0</strong></article>
+        </div>
+        <div class="card">
+          <div class="section-header"><div><h2>Suivi budgétaire</h2><p>Comparaison du budget prévu, engagé et dépensé.</p></div></div>
+          <div class="table-scroll"><table class="project-table"><thead><tr><th>Projet</th><th>Responsable</th><th>Budget prévu</th><th>Engagé</th><th>Dépensé</th><th>Disponible</th><th>Consommation</th></tr></thead><tbody id="budgetTableBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section class="view" id="usersView">
+        <div class="users-layout">
+          <div class="card"><div class="section-header"><div><h2>Utilisateurs</h2><p>Chaque utilisateur peut disposer de ses propres projets.</p></div><button class="button primary" id="newUserBtn">＋ Ajouter</button></div><div id="usersList" class="users-list"></div></div>
+          <div class="card"><div class="section-header"><div><h2>Vue globale</h2><p>Répartition des projets par utilisateur.</p></div></div><div id="usersSummary" class="users-summary"></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="projectModal">
+    <div class="modal modal-large" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">
+      <div class="modal-header"><div><h2 id="projectModalTitle">Nouveau projet</h2><p>Renseignez les informations principales, le budget et les phases SIA.</p></div><button class="icon-button" data-close-project>✕</button></div>
+      <form id="projectForm">
+        <input type="hidden" id="projectId" />
+        <div class="form-section"><h3>Informations générales</h3><div class="form-grid">
+          <label>Tension<select id="projectVoltage" required><option value="BT">BT</option><option value="MT">MT</option></select></label>
+          <label>Commune<input id="projectCommune" required placeholder="Ex. Orbe" /></label>
+          <label class="span-2">Chantier / projet<input id="projectName" required placeholder="Ex. Route du Signal 24" /></label>
+          <label class="span-2">Descriptif<textarea id="projectDescription" rows="3" placeholder="Description des travaux"></textarea></label>
+          <label>Responsable<select id="projectOwner" required></select></label>
+          <label>État<select id="projectStatus" required><option>En étude</option><option selected>En cours</option><option>En attente</option><option>Terminé</option><option>Suspendu</option></select></label>
+        </div></div>
+
+        <div class="form-section"><h3>Budget</h3><div class="form-grid">
+          <label>Budget prévu (CHF)<input id="budgetPlannedInput" type="number" min="0" step="100" value="0" /></label>
+          <label>Budget engagé (CHF)<input id="budgetCommittedInput" type="number" min="0" step="100" value="0" /></label>
+          <label>Dépensé / facturé (CHF)<input id="budgetActualInput" type="number" min="0" step="100" value="0" /></label>
+          <label>Référence budget<input id="budgetReferenceInput" placeholder="Ex. CAPEX-2026-014" /></label>
+        </div></div>
+
+        <div class="form-section"><div class="section-header compact"><div><h3>Phases SIA</h3><p>Les dates alimentent automatiquement le diagramme de Gantt.</p></div></div><div id="siaPhasesForm" class="sia-grid"></div></div>
+
+        <div class="modal-actions"><button type="button" class="button danger ghost hidden" id="deleteProjectBtn">Supprimer</button><div class="spacer"></div><button type="button" class="button secondary" data-close-project>Annuler</button><button type="submit" class="button primary">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="userModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+      <div class="modal-header"><div><h2 id="userModalTitle">Nouvel utilisateur</h2><p>Créez un responsable de projets.</p></div><button class="icon-button" data-close-user>✕</button></div>
+      <form id="userForm"><input type="hidden" id="userId" /><div class="form-grid one-col">
+        <label>Nom<input id="userName" required placeholder="Ex. Stéphane" /></label>
+        <label>Fonction<input id="userRole" placeholder="Ex. Responsable de projets" /></label>
+        <label>Initiales<input id="userInitials" maxlength="3" placeholder="SD" /></label>
+      </div><div class="modal-actions"><button type="button" class="button danger ghost hidden" id="deleteUserBtn">Supprimer</button><div class="spacer"></div><button type="button" class="button secondary" data-close-user>Annuler</button><button type="submit" class="button primary">Enregistrer</button></div></form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="app.js"></script>
+</body>
+</html>
