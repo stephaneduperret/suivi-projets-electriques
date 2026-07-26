@@ -3,6 +3,7 @@
 
   const KEY = 'voe-project-manager-v1';
   const year = new Date().getFullYear();
+  const AFFAIR_RE = /^\d{5}\.\d{6}$/;
   const phases = [
     { code:'31', name:'Avant-projet', cls:'sia-31' },
     { code:'32', name:'Projet de l’ouvrage', cls:'sia-32' },
@@ -20,15 +21,11 @@
       {id:'u2',name:'Collègue 1',role:'Chef de projet',initials:'C1'}
     ],
     projects:[
-      {id:'p1',voltage:'BT',commune:'Ballaigues',name:'Rte Signal – Champ aux Oyes',description:'Assainissement',ownerId:'u1',status:'En cours',budget:{planned:80000,committed:35000,actual:18000,reference:'CAPEX-2026-001'},phases:{'31':{start:`${year}-01-15`,end:`${year}-02-15`},'32':{start:`${year}-02-16`,end:`${year}-03-20`},'52':{start:`${year}-07-01`,end:`${year}-09-15`}}},
-      {id:'p2',voltage:'BT',commune:'Orbe',name:'Rte du Signal 24',description:'Nouveau raccordement et reprises des parcelles voisines',ownerId:'u1',status:'En cours',budget:{planned:120000,committed:68000,actual:42000,reference:'CAPEX-2026-002'},phases:{'31':{start:`${year}-02-01`,end:`${year}-02-28`},'32':{start:`${year}-03-01`,end:`${year}-04-15`},'52':{start:`${year}-08-01`,end:`${year}-10-15`}}},
-      {id:'p3',voltage:'MT',commune:'Orbe',name:'PPNV / EPO',description:'Agrandissement de la prison',ownerId:'u1',status:'En cours',budget:{planned:850000,committed:420000,actual:210000,reference:'CAPEX-2026-004'},phases:{'31':{start:`${year}-01-05`,end:`${year}-02-28`},'32':{start:`${year}-03-01`,end:`${year}-05-15`},'33':{start:`${year}-03-15`,end:`${year}-06-30`},'52':{start:`${year}-10-16`,end:`${year+1}-04-30`}}}
+      {id:'p1',affairNumber:'',voltage:'BT',commune:'Ballaigues',name:'Rte Signal – Champ aux Oyes',description:'Assainissement',ownerId:'u1',status:'En cours',budget:{planned:80000,committed:35000,actual:18000,reference:'CAPEX-2026-001'},phases:{'31':{start:`${year}-01-15`,end:`${year}-02-15`},'32':{start:`${year}-02-16`,end:`${year}-03-20`},'52':{start:`${year}-07-01`,end:`${year}-09-15`}}},
+      {id:'p2',affairNumber:'',voltage:'BT',commune:'Orbe',name:'Rte du Signal 24',description:'Nouveau raccordement et reprises des parcelles voisines',ownerId:'u1',status:'En cours',budget:{planned:120000,committed:68000,actual:42000,reference:'CAPEX-2026-002'},phases:{'31':{start:`${year}-02-01`,end:`${year}-02-28`},'32':{start:`${year}-03-01`,end:`${year}-04-15`},'52':{start:`${year}-08-01`,end:`${year}-10-15`}}},
+      {id:'p3',affairNumber:'',voltage:'MT',commune:'Orbe',name:'PPNV / EPO',description:'Agrandissement de la prison',ownerId:'u1',status:'En cours',budget:{planned:850000,committed:420000,actual:210000,reference:'CAPEX-2026-004'},phases:{'31':{start:`${year}-01-05`,end:`${year}-02-28`},'32':{start:`${year}-03-01`,end:`${year}-05-15`},'33':{start:`${year}-03-15`,end:`${year}-06-30`},'52':{start:`${year}-10-16`,end:`${year+1}-04-30`}}}
     ]
   };
-
-  let state = load();
-  let selectedProjectId = state.projects[0]?.id || '';
-  let ganttOffsetMonths = 0;
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -36,16 +33,33 @@
   const money = n => new Intl.NumberFormat('fr-CH',{style:'currency',currency:'CHF',maximumFractionDigits:0}).format(Number(n||0));
   const user = id => state.users.find(u=>u.id===id);
   const project = id => state.projects.find(p=>p.id===id);
-  const save = msg => { localStorage.setItem(KEY,JSON.stringify(state)); if(msg) toast(msg); };
+
+  function normalizeAffairNumber(value){
+    const raw=String(value||'').trim().replace(/\s+/g,'');
+    if(/^\d{11}$/.test(raw)) return `${raw.slice(0,5)}.${raw.slice(5)}`;
+    return raw;
+  }
+
+  function migrate(data){
+    if(!data || !Array.isArray(data.projects) || !Array.isArray(data.users)) return structuredClone(defaults);
+    data.projects=data.projects.map(p=>({affairNumber:'',...p,affairNumber:normalizeAffairNumber(p.affairNumber||'')}));
+    return data;
+  }
 
   function load(){
-    try {
-      const saved = JSON.parse(localStorage.getItem(KEY));
-      return saved && Array.isArray(saved.projects) && Array.isArray(saved.users) ? saved : structuredClone(defaults);
-    } catch {
+    try{
+      const saved=JSON.parse(localStorage.getItem(KEY));
+      return saved ? migrate(saved) : structuredClone(defaults);
+    }catch{
       return structuredClone(defaults);
     }
   }
+
+  let state=load();
+  let selectedProjectId=state.projects[0]?.id||'';
+  let ganttOffsetMonths=0;
+
+  const save = msg => { localStorage.setItem(KEY,JSON.stringify(state)); if(msg) toast(msg); };
 
   function toast(msg){
     const n=document.createElement('div');
@@ -69,7 +83,7 @@
   function datedPhases(p){
     return phases.flatMap(meta=>{
       const data=p.phases?.[meta.code];
-      if(!data || (!data.start && !data.end)) return [];
+      if(!data || (!data.start&&!data.end)) return [];
       return [{...meta,start:data.start||data.end,end:data.end||data.start}];
     });
   }
@@ -80,8 +94,27 @@
     return `<div class="sia-chips">${list.map(ph=>`<span class="sia-chip ${ph.cls}" title="SIA ${ph.code} — ${esc(ph.name)} : ${formatDate(ph.start)} → ${formatDate(ph.end)}">SIA ${ph.code}</span>`).join('')}</div>`;
   }
 
+  function prepareAffairUi(){
+    const firstHeader=document.querySelector('.project-table thead th');
+    if(firstHeader) firstHeader.textContent='N° d’affaire';
+
+    if(!$('projectAffairNumber')){
+      const grid=$('projectVoltage')?.closest('.form-grid');
+      if(grid){
+        const label=document.createElement('label');
+        label.innerHTML='N° d’affaire<input id="projectAffairNumber" required inputmode="numeric" maxlength="12" placeholder="Ex. 20202.100200" pattern="[0-9]{5}\\.[0-9]{6}" title="Format attendu : 20202.100200" />';
+        grid.insertBefore(label,grid.firstElementChild);
+      }
+    }
+
+    const input=$('projectAffairNumber');
+    if(input){
+      input.addEventListener('blur',()=>{ input.value=normalizeAffairNumber(input.value); });
+    }
+  }
+
   function renderSiaForm(){
-    $('siaPhasesForm').innerHTML = phases.map(({code,name,cls})=>`
+    $('siaPhasesForm').innerHTML=phases.map(({code,name,cls})=>`
       <div class="sia-row ${cls}">
         <div class="phase-name"><span class="sia-dot ${cls}"></span>SIA ${code} — ${esc(name)}</div>
         <label>Début<input type="date" data-start="${code}"></label>
@@ -92,35 +125,35 @@
   function renderUserSelects(){
     const opts=state.users.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('');
     $('activeUserSelect').innerHTML=opts;
-    $('activeUserSelect').value=state.activeUserId || state.users[0]?.id || '';
+    $('activeUserSelect').value=state.activeUserId||state.users[0]?.id||'';
     $('projectOwner').innerHTML=opts;
     ['filterOwner','ganttOwnerFilter'].forEach(id=>{
       const old=$(id).value;
       $(id).innerHTML='<option value="">Tous les utilisateurs</option>'+opts;
       if([...$(id).options].some(o=>o.value===old)) $(id).value=old;
     });
-    $('ganttProjectSelect').innerHTML=state.projects.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
-    if(selectedProjectId && project(selectedProjectId)) $('ganttProjectSelect').value=selectedProjectId;
-    else selectedProjectId=state.projects[0]?.id || '';
+    $('ganttProjectSelect').innerHTML=state.projects.map(p=>`<option value="${p.id}">${esc(p.affairNumber?`${p.affairNumber} · ${p.name}`:p.name)}</option>`).join('');
+    if(selectedProjectId&&project(selectedProjectId)) $('ganttProjectSelect').value=selectedProjectId;
+    else selectedProjectId=state.projects[0]?.id||'';
   }
 
   function filteredProjects(){
-    const q=$('searchInput').value.toLowerCase().trim(), v=$('filterVoltage').value, s=$('filterStatus').value, o=$('filterOwner').value;
+    const q=$('searchInput').value.toLowerCase().trim(),v=$('filterVoltage').value,s=$('filterStatus').value,o=$('filterOwner').value;
     return state.projects.filter(p=>{
       const phaseText=datedPhases(p).map(ph=>`SIA ${ph.code} ${ph.name}`).join(' ');
-      const txt=[p.voltage,p.commune,p.name,p.description,p.status,user(p.ownerId)?.name,p.budget?.reference,phaseText].join(' ').toLowerCase();
+      const txt=[p.affairNumber,p.voltage,p.commune,p.name,p.description,p.status,user(p.ownerId)?.name,p.budget?.reference,phaseText].join(' ').toLowerCase();
       return (!q||txt.includes(q))&&(!v||p.voltage===v)&&(!s||p.status===s)&&(!o||p.ownerId===o);
     });
   }
 
-  function statusClass(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,'-'); }
+  function statusClass(s){ return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,'-'); }
 
   function renderProjects(){
     const rows=filteredProjects();
-    $('projectsTableBody').innerHTML=rows.map((p,i)=>{
+    $('projectsTableBody').innerHTML=rows.map(p=>{
       const u=user(p.ownerId);
       return `<tr>
-        <td>${i+1}</td>
+        <td><strong>${esc(p.affairNumber||'—')}</strong></td>
         <td><span class="tag ${p.voltage.toLowerCase()}">${p.voltage}</span></td>
         <td>${esc(p.commune)}</td>
         <td><span class="link-like" data-edit="${p.id}">${esc(p.name)}</span></td>
@@ -149,6 +182,7 @@
     const p=id?project(id):null;
     $('projectModalTitle').textContent=p?'Modifier le projet':'Nouveau projet';
     $('projectId').value=p?.id||'';
+    $('projectAffairNumber').value=p?.affairNumber||'';
     $('projectVoltage').value=p?.voltage||'BT';
     $('projectCommune').value=p?.commune||'';
     $('projectName').value=p?.name||'';
@@ -176,8 +210,9 @@
     $('budgetActual').textContent=money(t.actual);
     $('budgetRemaining').textContent=money(t.planned-t.actual);
     $('budgetTableBody').innerHTML=state.projects.map(p=>{
-      const b=p.budget||{}, pct=b.planned?Math.min(100,Math.round(Number(b.actual||0)/Number(b.planned)*100)):0;
-      return `<tr><td><span class="link-like" data-edit="${p.id}">${esc(p.name)}</span></td><td>${esc(user(p.ownerId)?.name||'—')}</td><td>${money(b.planned)}</td><td>${money(b.committed)}</td><td>${money(b.actual)}</td><td>${money(Number(b.planned||0)-Number(b.actual||0))}</td><td><div class="progress-wrap"><div class="progress"><span style="width:${pct}%"></span></div><small>${pct}%</small></div></td></tr>`;
+      const b=p.budget||{},pct=b.planned?Math.min(100,Math.round(Number(b.actual||0)/Number(b.planned)*100)):0;
+      const label=p.affairNumber?`${p.affairNumber} · ${p.name}`:p.name;
+      return `<tr><td><span class="link-like" data-edit="${p.id}">${esc(label)}</span></td><td>${esc(user(p.ownerId)?.name||'—')}</td><td>${money(b.planned)}</td><td>${money(b.committed)}</td><td>${money(b.actual)}</td><td>${money(Number(b.planned||0)-Number(b.actual||0))}</td><td><div class="progress-wrap"><div class="progress"><span style="width:${pct}%"></span></div><small>${pct}%</small></div></td></tr>`;
     }).join('');
     document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openProject(b.dataset.edit));
   }
@@ -185,104 +220,62 @@
   function renderLegend(usedCodes){
     const legend=document.querySelector('.legend');
     const visible=phases.filter(ph=>usedCodes.has(ph.code));
-    if(!visible.length){
-      legend.innerHTML='<span>Aucune phase SIA datée</span>';
-      return;
-    }
+    if(!visible.length){ legend.innerHTML='<span>Aucune phase SIA datée</span>'; return; }
     legend.innerHTML=visible.map(ph=>`<span><i class="legend-sia ${ph.cls}"></i>SIA ${ph.code}</span>`).join('');
   }
 
   function renderGantt(){
-    const mode=$('ganttMode').value, ownerFilter=$('ganttOwnerFilter').value;
+    const mode=$('ganttMode').value,ownerFilter=$('ganttOwnerFilter').value;
     $('ganttProjectSelect').classList.toggle('hidden',mode!=='selected');
-
     let rows=[];
     const usedCodes=new Set();
 
     if(mode==='selected'){
       selectedProjectId=$('ganttProjectSelect').value||selectedProjectId;
       const p=project(selectedProjectId);
-      if(!p){
-        $('ganttWrap').innerHTML='<div class="gantt-empty">Aucun projet.</div>';
-        renderLegend(usedCodes);
-        return;
-      }
-      $('ganttTitle').textContent=p.name;
+      if(!p){ $('ganttWrap').innerHTML='<div class="gantt-empty">Aucun projet.</div>'; renderLegend(usedCodes); return; }
+      $('ganttTitle').textContent=p.affairNumber?`${p.affairNumber} — ${p.name}`:p.name;
       $('ganttHint').textContent=`${p.commune} · ${p.voltage} · seules les phases SIA avec une date sont affichées`;
       rows=datedPhases(p).map(ph=>{
         usedCodes.add(ph.code);
-        return {
-          label:`SIA ${ph.code} — ${ph.name}`,
-          sub:`${formatDate(ph.start)} → ${formatDate(ph.end)}`,
-          bars:[{start:ph.start,end:ph.end,cls:ph.cls,label:`SIA ${ph.code}`}],
-          multi:false
-        };
+        return {label:`SIA ${ph.code} — ${ph.name}`,sub:`${formatDate(ph.start)} → ${formatDate(ph.end)}`,bars:[{start:ph.start,end:ph.end,cls:ph.cls,label:`SIA ${ph.code}`}],multi:false};
       });
-    } else {
+    }else{
       const ps=state.projects.filter(p=>!ownerFilter||p.ownerId===ownerFilter);
       $('ganttTitle').textContent='Planning général — phases SIA';
       $('ganttHint').textContent=`${ps.length} projet(s) · chaque couleur correspond à une phase SIA`;
       rows=ps.map(p=>{
-        const dp=datedPhases(p);
-        dp.forEach(ph=>usedCodes.add(ph.code));
-        return {
-          label:p.name,
-          sub:`${user(p.ownerId)?.name||'Sans responsable'} · ${p.commune} · ${p.voltage}`,
-          bars:dp.map(ph=>({start:ph.start,end:ph.end,cls:ph.cls,label:`SIA ${ph.code}`})),
-          multi:true
-        };
+        const dp=datedPhases(p); dp.forEach(ph=>usedCodes.add(ph.code));
+        return {label:p.affairNumber?`${p.affairNumber} — ${p.name}`:p.name,sub:`${user(p.ownerId)?.name||'Sans responsable'} · ${p.commune} · ${p.voltage}`,bars:dp.map(ph=>({start:ph.start,end:ph.end,cls:ph.cls,label:`SIA ${ph.code}`})),multi:true};
       }).filter(r=>r.bars.length);
     }
 
     renderLegend(usedCodes);
-
-    if(!rows.length){
-      $('ganttWrap').innerHTML='<div class="gantt-empty">Ajoutez des dates SIA pour afficher le planning.</div>';
-      return;
-    }
-
+    if(!rows.length){ $('ganttWrap').innerHTML='<div class="gantt-empty">Ajoutez des dates SIA pour afficher le planning.</div>'; return; }
     renderGanttRows(rows);
   }
 
   function renderGanttRows(rows){
     const allBars=rows.flatMap(r=>r.bars);
     const dates=allBars.flatMap(b=>[b.start,b.end].filter(Boolean).map(parseDate).filter(Boolean));
-    if(!dates.length){
-      $('ganttWrap').innerHTML='<div class="gantt-empty">Ajoutez des dates SIA pour afficher le planning.</div>';
-      return;
-    }
-
-    let min=new Date(Math.min(...dates.map(d=>d.getTime())));
-    let max=new Date(Math.max(...dates.map(d=>d.getTime())));
+    if(!dates.length){ $('ganttWrap').innerHTML='<div class="gantt-empty">Ajoutez des dates SIA pour afficher le planning.</div>'; return; }
+    let min=new Date(Math.min(...dates.map(d=>d.getTime()))),max=new Date(Math.max(...dates.map(d=>d.getTime())));
     min=new Date(min.getFullYear(),min.getMonth()-1+ganttOffsetMonths,1);
     max=new Date(max.getFullYear(),max.getMonth()+2+ganttOffsetMonths,0);
-    const minSpan=new Date(min.getFullYear(),min.getMonth()+6,0);
-    if(max<minSpan) max=minSpan;
-
-    const total=Math.max(1,(max-min)/86400000);
-    const months=[];
+    const minSpan=new Date(min.getFullYear(),min.getMonth()+6,0); if(max<minSpan) max=minSpan;
+    const total=Math.max(1,(max-min)/86400000),months=[];
     let d=new Date(min.getFullYear(),min.getMonth(),1);
-    while(d<=max){ months.push(new Date(d)); d=new Date(d.getFullYear(),d.getMonth()+1,1); }
+    while(d<=max){months.push(new Date(d));d=new Date(d.getFullYear(),d.getMonth()+1,1);}
     const timelineWidth=Math.max(900,months.length*100);
-
-    const today=new Date();
-    const todayLeft=today>=min&&today<=max ? ((today-min)/86400000)/total*100 : null;
-
+    const today=new Date(),todayLeft=today>=min&&today<=max?((today-min)/86400000)/total*100:null;
     $('ganttWrap').innerHTML=`
       <div class="gantt-grid" style="grid-template-columns:250px ${timelineWidth}px">
         <div class="gantt-label header">Projet / phase</div>
-        <div class="gantt-months" style="grid-template-columns:repeat(${months.length},100px)">
-          ${months.map(m=>`<div class="gantt-month">${m.toLocaleDateString('fr-CH',{month:'short',year:'2-digit'})}</div>`).join('')}
-        </div>
+        <div class="gantt-months" style="grid-template-columns:repeat(${months.length},100px)">${months.map(m=>`<div class="gantt-month">${m.toLocaleDateString('fr-CH',{month:'short',year:'2-digit'})}</div>`).join('')}</div>
         ${rows.map(r=>{
           const timelineClass=r.multi?'gantt-timeline multi':'gantt-timeline';
           const bars=r.bars.map((b,index)=>{
-            const s=parseDate(b.start||b.end), e=parseDate(b.end||b.start);
-            const left=((s-min)/86400000)/total*100;
-            const width=Math.max(.8,((e-s)/86400000)/total*100);
-            const compact=r.multi?' compact':'';
-            const top=r.multi ? 7 + index*8 : 10;
-            const title=`${b.label} : ${formatDate(b.start)} → ${formatDate(b.end)}`;
+            const s=parseDate(b.start||b.end),e=parseDate(b.end||b.start),left=((s-min)/86400000)/total*100,width=Math.max(.8,((e-s)/86400000)/total*100),compact=r.multi?' compact':'',top=r.multi?7+index*8:10,title=`${b.label} : ${formatDate(b.start)} → ${formatDate(b.end)}`;
             return `<div class="gantt-bar ${b.cls}${compact}" style="left:${left}%;width:${width}%;top:${top}px" title="${esc(title)}">${r.multi?'':esc(b.label)}</div>`;
           }).join('');
           return `<div class="gantt-label ${r.multi?'multi-label':''}"><strong>${esc(r.label)}</strong><small>${esc(r.sub)}</small></div><div class="${timelineClass}" style="width:${timelineWidth}px">${bars}${todayLeft===null?'':`<div class="gantt-today" style="left:${todayLeft}%" title="Aujourd’hui"></div>`}</div>`;
@@ -315,24 +308,14 @@
   }
 
   function closeUser(){ $('userModal').classList.add('hidden'); }
-
   function renderAll(){ renderUserSelects(); renderProjects(); renderBudgets(); renderUsers(); renderGantt(); }
 
   function switchView(v){
     document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===v+'View'));
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===v));
-    const t={
-      projects:['Suivi des projets en cours','Gestion des projets électriques MT et BT'],
-      gantt:['Planning Gantt','Planning des phases SIA par projet ou pour tous les projets'],
-      budgets:['Budgets des projets','Suivi financier prévu, engagé et dépensé'],
-      users:['Utilisateurs','Gestion des responsables et vue multi-utilisateurs']
-    }[v];
-    $('pageTitle').textContent=t[0];
-    $('pageSubtitle').textContent=t[1];
-    $('newProjectBtn').classList.toggle('hidden',v!=='projects');
-    if(v==='gantt')renderGantt();
-    if(v==='budgets')renderBudgets();
-    if(v==='users')renderUsers();
+    const t={projects:['Suivi des projets en cours','Gestion des projets électriques MT et BT'],gantt:['Planning Gantt','Planning des phases SIA par projet ou pour tous les projets'],budgets:['Budgets des projets','Suivi financier prévu, engagé et dépensé'],users:['Utilisateurs','Gestion des responsables et vue multi-utilisateurs']}[v];
+    $('pageTitle').textContent=t[0]; $('pageSubtitle').textContent=t[1]; $('newProjectBtn').classList.toggle('hidden',v!=='projects');
+    if(v==='gantt')renderGantt(); if(v==='budgets')renderBudgets(); if(v==='users')renderUsers();
   }
 
   document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
@@ -341,44 +324,34 @@
   document.querySelectorAll('[data-close-project]').forEach(b=>b.onclick=closeProject);
   document.querySelectorAll('[data-close-user]').forEach(b=>b.onclick=closeUser);
   $('newUserBtn').onclick=()=>openUser();
-
   ['searchInput','filterVoltage','filterStatus','filterOwner'].forEach(id=>$(id).addEventListener(id==='searchInput'?'input':'change',renderProjects));
-  $('resetFiltersBtn').onclick=()=>{ ['searchInput','filterVoltage','filterStatus','filterOwner'].forEach(id=>$(id).value=''); renderProjects(); };
-  $('activeUserSelect').onchange=e=>{ state.activeUserId=e.target.value; save(); renderAll(); };
+  $('resetFiltersBtn').onclick=()=>{['searchInput','filterVoltage','filterStatus','filterOwner'].forEach(id=>$(id).value='');renderProjects();};
+  $('activeUserSelect').onchange=e=>{state.activeUserId=e.target.value;save();renderAll();};
   $('ganttMode').onchange=renderGantt;
   $('ganttOwnerFilter').onchange=renderGantt;
-  $('ganttProjectSelect').onchange=e=>{ selectedProjectId=e.target.value; renderGantt(); };
-  $('ganttPrevBtn').onclick=()=>{ ganttOffsetMonths-=6; renderGantt(); };
-  $('ganttNextBtn').onclick=()=>{ ganttOffsetMonths+=6; renderGantt(); };
-  $('ganttTodayBtn').onclick=()=>{ ganttOffsetMonths=0; renderGantt(); };
+  $('ganttProjectSelect').onchange=e=>{selectedProjectId=e.target.value;renderGantt();};
+  $('ganttPrevBtn').onclick=()=>{ganttOffsetMonths-=6;renderGantt();};
+  $('ganttNextBtn').onclick=()=>{ganttOffsetMonths+=6;renderGantt();};
+  $('ganttTodayBtn').onclick=()=>{ganttOffsetMonths=0;renderGantt();};
 
   $('projectForm').onsubmit=e=>{
     e.preventDefault();
-    const id=$('projectId').value||uid('p'), ph={};
+    const id=$('projectId').value||uid('p'),ph={};
+    const affairNumber=normalizeAffairNumber($('projectAffairNumber').value);
+    $('projectAffairNumber').value=affairNumber;
+    if(!AFFAIR_RE.test(affairNumber)) return toast('N° d’affaire invalide. Format attendu : 20202.100200');
+    if(state.projects.some(p=>p.id!==id&&p.affairNumber===affairNumber)) return toast('Ce N° d’affaire est déjà utilisé par un autre projet.');
     for(const {code} of phases){
-      const s=document.querySelector(`[data-start="${code}"]`).value;
-      const en=document.querySelector(`[data-end="${code}"]`).value;
+      const s=document.querySelector(`[data-start="${code}"]`).value,en=document.querySelector(`[data-end="${code}"]`).value;
       if(s&&en&&parseDate(en)<parseDate(s)) return toast(`La fin de la phase SIA ${code} est antérieure au début.`);
       if(s||en) ph[code]={start:s,end:en};
     }
     const p={
-      id,
-      voltage:$('projectVoltage').value,
-      commune:$('projectCommune').value.trim(),
-      name:$('projectName').value.trim(),
-      description:$('projectDescription').value.trim(),
-      ownerId:$('projectOwner').value,
-      status:$('projectStatus').value,
-      budget:{
-        planned:Number($('budgetPlannedInput').value||0),
-        committed:Number($('budgetCommittedInput').value||0),
-        actual:Number($('budgetActualInput').value||0),
-        reference:$('budgetReferenceInput').value.trim()
-      },
-      phases:ph
+      id,affairNumber,voltage:$('projectVoltage').value,commune:$('projectCommune').value.trim(),name:$('projectName').value.trim(),description:$('projectDescription').value.trim(),ownerId:$('projectOwner').value,status:$('projectStatus').value,
+      budget:{planned:Number($('budgetPlannedInput').value||0),committed:Number($('budgetCommittedInput').value||0),actual:Number($('budgetActualInput').value||0),reference:$('budgetReferenceInput').value.trim()},phases:ph
     };
     const i=state.projects.findIndex(x=>x.id===id);
-    if(i>=0) state.projects[i]=p; else state.projects.push(p);
+    if(i>=0)state.projects[i]=p;else state.projects.push(p);
     selectedProjectId=id;
     save(i>=0?'Projet modifié.':'Projet ajouté.');
     closeProject();
@@ -390,9 +363,7 @@
     if(p&&confirm(`Supprimer « ${p.name} » ?`)){
       state.projects=state.projects.filter(x=>x.id!==id);
       selectedProjectId=state.projects[0]?.id||'';
-      save('Projet supprimé.');
-      closeProject();
-      renderAll();
+      save('Projet supprimé.'); closeProject(); renderAll();
     }
   };
 
@@ -402,9 +373,7 @@
     const u={id,name,role:$('userRole').value.trim(),initials:($('userInitials').value.trim()||name.split(/\s+/).map(x=>x[0]).join('').slice(0,3)).toUpperCase()};
     const i=state.users.findIndex(x=>x.id===id);
     if(i>=0)state.users[i]=u;else state.users.push(u);
-    save(i>=0?'Utilisateur modifié.':'Utilisateur ajouté.');
-    closeUser();
-    renderAll();
+    save(i>=0?'Utilisateur modifié.':'Utilisateur ajouté.'); closeUser(); renderAll();
   };
 
   $('deleteUserBtn').onclick=()=>{
@@ -412,56 +381,48 @@
     if(count)return toast(`Impossible : ${count} projet(s) attribué(s).`);
     if(state.users.length<=1)return toast('Il faut conserver au moins un utilisateur.');
     if(confirm(`Supprimer « ${u.name} » ?`)){
-      state.users=state.users.filter(x=>x.id!==id);
-      save('Utilisateur supprimé.');
-      closeUser();
-      renderAll();
+      state.users=state.users.filter(x=>x.id!==id); save('Utilisateur supprimé.'); closeUser(); renderAll();
     }
   };
 
   $('printBtn').onclick=()=>print();
   $('exportJsonBtn').onclick=()=>download(JSON.stringify({data:state},null,2),'projets-electriques.json','application/json');
   $('exportCsvBtn').onclick=()=>{
-    const rows=[['Tension','Commune','Projet','Descriptif','Responsable','Etat','Phases SIA','Budget prévu','Engagé','Dépensé']].concat(state.projects.map(p=>[
-      p.voltage,p.commune,p.name,p.description,user(p.ownerId)?.name||'',p.status,datedPhases(p).map(ph=>`SIA ${ph.code}`).join(' | '),p.budget?.planned||0,p.budget?.committed||0,p.budget?.actual||0
+    const rows=[['N° d’affaire','Tension','Commune','Projet','Descriptif','Responsable','Etat','Phases SIA','Budget prévu','Engagé','Dépensé']].concat(state.projects.map(p=>[
+      p.affairNumber||'',p.voltage,p.commune,p.name,p.description,user(p.ownerId)?.name||'',p.status,datedPhases(p).map(ph=>`SIA ${ph.code}`).join(' | '),p.budget?.planned||0,p.budget?.committed||0,p.budget?.actual||0
     ]));
     download('\uFEFF'+rows.map(r=>r.map(c=>`"${String(c).replaceAll('"','""')}"`).join(';')).join('\n'),'projets-electriques.csv','text/csv');
   };
 
   $('shareBtn').onclick=async()=>{
     try{
-      if(navigator.share) await navigator.share({title:'Suivi des projets électriques',text:'Suivi des projets MT/BT',url:location.href});
-      else { await navigator.clipboard.writeText(location.href); toast('Adresse copiée.'); }
+      if(navigator.share)await navigator.share({title:'Suivi des projets électriques',text:'Suivi des projets MT/BT',url:location.href});
+      else{await navigator.clipboard.writeText(location.href);toast('Adresse copiée.');}
     }catch{}
   };
 
   $('importJsonInput').onchange=e=>{
-    const f=e.target.files?.[0];
-    if(!f)return;
+    const f=e.target.files?.[0]; if(!f)return;
     const r=new FileReader();
     r.onload=()=>{
       try{
-        const x=JSON.parse(r.result), d=x.data||x;
+        const x=JSON.parse(r.result),d=x.data||x;
         if(!Array.isArray(d.projects)||!Array.isArray(d.users))throw new Error('Format invalide');
         if(confirm('Remplacer les données actuelles ?')){
-          state=d;
-          selectedProjectId=state.projects[0]?.id||'';
-          save('Données importées.');
-          renderAll();
+          state=migrate(d); selectedProjectId=state.projects[0]?.id||''; save('Données importées.'); renderAll();
         }
-      }catch{ toast('Fichier incompatible.'); }
+      }catch{toast('Fichier incompatible.');}
     };
     r.readAsText(f);
   };
 
   function download(content,name,type){
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([content],{type}));
-    a.download=name;
-    a.click();
+    a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),500);
   }
 
+  prepareAffairUi();
   renderSiaForm();
   renderAll();
 })();
