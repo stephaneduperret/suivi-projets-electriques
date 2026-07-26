@@ -1,0 +1,222 @@
+/* Optimisation smartphone / tablette */
+.sidebar-close,.sidebar-overlay{display:none}
+
+@media (max-width:1050px){
+  html,body{max-width:100%;overflow-x:hidden}
+  .sidebar{
+    z-index:110;
+    width:min(86vw,330px);
+    max-width:330px;
+    padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+    overflow-y:auto;
+    box-shadow:18px 0 40px rgba(15,23,42,.28);
+    transform:translateX(-105%);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-close{
+    display:grid;
+    place-items:center;
+    position:absolute;
+    top:calc(14px + env(safe-area-inset-top));
+    right:12px;
+    width:44px;
+    height:44px;
+    border:0;
+    border-radius:12px;
+    background:#1f2937;
+    color:#fff;
+    font-size:25px;
+    line-height:1;
+    z-index:2;
+  }
+  .brand{padding-right:52px;padding-bottom:22px}
+  .brand-mark{width:46px;height:46px;font-size:23px}
+  .brand strong{font-size:17px}
+  .brand span{font-size:13px}
+  .nav{gap:8px}
+  .nav-item{min-height:52px;padding:13px 14px;font-size:16px}
+  .sidebar-footer{padding-bottom:10px}
+  .sidebar-footer select{min-height:46px;font-size:16px}
+
+  .sidebar-overlay{
+    display:block;
+    position:fixed;
+    inset:0;
+    z-index:105;
+    background:rgba(15,23,42,.52);
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transition:opacity .2s ease,visibility .2s ease;
+  }
+  body.menu-open .sidebar-overlay{
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+  }
+  body.menu-open{overflow:hidden}
+
+  .mobile-only{display:inline-grid;place-items:center}
+  #toggleSidebar{
+    width:44px;
+    height:44px;
+    background:#fff;
+    border:1px solid var(--border);
+    box-shadow:var(--shadow);
+    font-size:23px;
+  }
+
+  .main{width:100%;min-width:0}
+  .table-scroll{-webkit-overflow-scrolling:touch}
+  .gantt-wrap{-webkit-overflow-scrolling:touch}
+}
+
+@media (max-width:720px){
+  :root{--radius:12px}
+  .main{padding:12px 12px calc(20px + env(safe-area-inset-bottom))}
+
+  .topbar{gap:14px;margin-bottom:16px}
+  .topbar>div:first-child{
+    width:100%;
+    min-height:46px;
+    position:relative;
+    padding-left:55px;
+  }
+  .topbar h1{font-size:21px;line-height:1.15;padding-top:1px}
+  .topbar p{font-size:13px;line-height:1.35;margin-top:4px}
+  #toggleSidebar{position:absolute;left:0;top:0}
+
+  .top-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    width:100%;
+  }
+  .top-actions .button{min-height:44px;width:100%}
+  #newProjectBtn{grid-column:1/-1;min-height:48px;font-size:15px}
+
+  .stats-grid{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .stat-card{padding:13px 12px;min-width:0}
+  .stat-card span{font-size:11px;line-height:1.25}
+  .stat-card strong{font-size:19px;line-height:1.15;overflow-wrap:anywhere}
+
+  .toolbar{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    padding:10px;
+    margin-bottom:10px;
+  }
+  .toolbar .search-box{grid-column:1/-1;min-width:0;width:100%;min-height:44px}
+  .toolbar .control,.toolbar .button,.toolbar .file-button{width:100%;min-width:0;min-height:44px;padding:9px 8px}
+  #filterOwner{grid-column:1/-1}
+  #resetFiltersBtn{grid-column:1/-1}
+  #ganttProjectSelect{grid-column:1/-1}
+
+  /* Les projets deviennent des cartes lisibles, sans tableau de 1080 px. */
+  #projectsView .table-card{background:transparent;border:0;box-shadow:none;overflow:visible}
+  #projectsView .table-scroll{overflow:visible}
+  #projectsView .project-table{display:block;min-width:0;width:100%;border-collapse:separate}
+  #projectsView .project-table thead{display:none}
+  #projectsView .project-table tbody{display:grid;gap:10px}
+  #projectsView .project-table tr{
+    display:block;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  #projectsView .project-table tbody tr:hover{background:#fff}
+  #projectsView .project-table td{
+    display:grid;
+    grid-template-columns:105px minmax(0,1fr);
+    gap:10px;
+    align-items:start;
+    width:100%;
+    padding:10px 12px;
+    border-bottom:1px solid #eef2f7;
+    font-size:13px;
+    overflow-wrap:anywhere;
+  }
+  #projectsView .project-table td::before{font-weight:750;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.02em;padding-top:2px}
+  #projectsView .project-table td:nth-child(1)::before{content:"N° affaire"}
+  #projectsView .project-table td:nth-child(2)::before{content:"Tension"}
+  #projectsView .project-table td:nth-child(3)::before{content:"Commune"}
+  #projectsView .project-table td:nth-child(4)::before{content:"Chantier"}
+  #projectsView .project-table td:nth-child(5)::before{content:"Descriptif"}
+  #projectsView .project-table td:nth-child(6)::before{content:"Responsable"}
+  #projectsView .project-table td:nth-child(7)::before{content:"Budget"}
+  #projectsView .project-table td:nth-child(8)::before{content:"État"}
+  #projectsView .project-table td:nth-child(9){display:flex;justify-content:flex-end;gap:8px;border-bottom:0;padding:8px 10px}
+  #projectsView .project-table td:nth-child(9)::before{display:none}
+  #projectsView .row-actions{gap:8px}
+  #projectsView .row-actions button{width:44px;height:40px;background:#f8fafc;border:1px solid var(--border);font-size:18px}
+  #projectsView .owner-chip{align-items:flex-start}
+
+  /* Les autres tableaux restent défilables horizontalement. */
+  #budgetsView .project-table{min-width:820px}
+  #budgetsView .table-scroll{border-radius:0 0 12px 12px}
+
+  .gantt-card{padding:10px}
+  .gantt-header-row{align-items:flex-start;flex-direction:column;gap:10px}
+  .gantt-header-row h2{font-size:16px}
+  .legend{gap:8px}
+  .gantt-wrap{max-height:68vh}
+
+  .section-header{padding:14px 12px;align-items:flex-start}
+  .users-list,.users-summary{padding-left:12px;padding-right:12px}
+  .user-card{padding:10px;gap:9px}
+  .user-card .count{display:none}
+  .summary-row{grid-template-columns:90px 1fr 28px;gap:7px;font-size:12px}
+
+  /* Fenêtres adaptées au téléphone. */
+  .modal-backdrop{
+    padding:0;
+    align-items:end;
+  }
+  .modal,.modal-large{
+    width:100%;
+    max-width:none;
+    max-height:94dvh;
+    border-radius:18px 18px 0 0;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .modal-header{
+    position:sticky;
+    top:0;
+    z-index:4;
+    background:#fff;
+    padding:14px 15px;
+  }
+  .modal-header .icon-button{width:44px;height:44px;background:#f8fafc}
+  #projectForm,#userForm{padding:0 14px 14px}
+  .form-section{padding:15px 0}
+  .form-grid{gap:11px}
+  .form-grid input,.form-grid select,.form-grid textarea,.sia-row input{min-height:44px;font-size:16px}
+  .sia-row{padding:10px;gap:8px}
+  .modal-actions{
+    position:sticky;
+    bottom:0;
+    z-index:4;
+    margin:0 -14px -14px;
+    padding:11px 14px calc(11px + env(safe-area-inset-bottom));
+    background:#fff;
+    border-top:1px solid var(--border);
+    box-shadow:0 -8px 18px rgba(15,23,42,.05);
+  }
+  .modal-actions .button{min-height:44px}
+  .toast-container{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom))}
+  .toast{width:100%;min-width:0;max-width:none}
+}
+
+@media (max-width:420px){
+  .main{padding-left:9px;padding-right:9px}
+  .stats-grid{gap:6px}
+  .stat-card{padding:11px 10px}
+  .stat-card strong{font-size:17px}
+  .toolbar{grid-template-columns:1fr}
+  .toolbar>*{grid-column:1/-1!important}
+  #projectsView .project-table td{grid-template-columns:92px minmax(0,1fr);padding:9px 10px}
+  .topbar h1{font-size:19px}
+}
