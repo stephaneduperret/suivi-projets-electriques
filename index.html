@@ -3,84 +3,197 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#f6f7fb" />
+  <meta name="theme-color" content="#061b3a" />
   <title>Suivi des projets électriques MT / BT</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="sia-phases.css" />
   <link rel="stylesheet" href="mobile.css" />
+  <link rel="stylesheet" href="dashboard-theme.css" />
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <div class="brand-mark">⚡</div>
-        <div>
-          <strong>Projets électriques</strong>
+        <div class="brand-copy">
+          <strong>Projets<br>électriques</strong>
           <span>MT / BT</span>
         </div>
       </div>
 
-      <nav class="nav">
-        <button class="nav-item active" data-view="projects"><span>▦</span> Projets</button>
-        <button class="nav-item" data-view="gantt"><span>▤</span> Gantt</button>
-        <button class="nav-item" data-view="budgets"><span>CHF</span> Budgets</button>
-        <button class="nav-item" data-view="users"><span>👥</span> Utilisateurs</button>
+      <nav class="nav" aria-label="Navigation principale">
+        <button class="nav-item active" data-view="projects"><span class="nav-icon">▦</span><span>Projets</span></button>
+        <button class="nav-item" data-view="gantt"><span class="nav-icon">☷</span><span>Gantt</span></button>
+        <button class="nav-item" data-view="budgets"><span class="nav-icon nav-icon-chf">CHF</span><span>Budgets</span></button>
+        <button class="nav-item" data-view="users"><span class="nav-icon">♧</span><span>Utilisateurs</span></button>
       </nav>
 
       <div class="sidebar-footer">
-        <label for="activeUserSelect">Utilisateur actif</label>
-        <select id="activeUserSelect"></select>
-        <small>Les projets sont enregistrés dans ce navigateur.</small>
+        <div class="active-user-card">
+          <div class="active-user-avatar" id="dashboardUserInitial">S</div>
+          <div class="active-user-copy">
+            <strong id="dashboardUserName">Stéphane</strong>
+            <span>Utilisateur actif</span>
+          </div>
+          <select id="activeUserSelect" aria-label="Utilisateur actif"></select>
+        </div>
+        <div class="local-storage-note">☁ Données enregistrées dans ce navigateur</div>
       </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div>
-          <button class="icon-button mobile-only" id="toggleSidebar" title="Menu" aria-label="Ouvrir le menu">☰</button>
-          <h1 id="pageTitle">Suivi des projets en cours</h1>
-          <p id="pageSubtitle">Gestion des projets électriques MT et BT</p>
+        <div class="topbar-heading">
+          <button class="icon-button mobile-only menu-button" id="toggleSidebar" title="Menu" aria-label="Ouvrir le menu">☰</button>
+          <div>
+            <span class="page-eyebrow" id="pageEyebrow">Bonjour,</span>
+            <h1 id="pageTitle">Stéphane 👋</h1>
+            <p id="pageSubtitle">Vue d’ensemble de vos projets électriques.</p>
+          </div>
         </div>
 
         <div class="top-actions">
-          <button class="button secondary" id="printBtn">🖨 Imprimer</button>
-          <button class="button secondary" id="shareBtn">↗ Partager</button>
-          <button class="button primary" id="newProjectBtn">＋ Nouveau projet</button>
+          <button class="round-action" id="printBtn" title="Imprimer" aria-label="Imprimer">🖨</button>
+          <button class="round-action" id="shareBtn" title="Partager" aria-label="Partager">↗</button>
+          <button class="round-action notification-action" type="button" title="Notifications" aria-label="Notifications">♧<i></i></button>
+          <button class="round-action primary-round" id="newProjectBtn" title="Nouveau projet" aria-label="Nouveau projet">＋</button>
         </div>
       </header>
 
       <section class="view active" id="projectsView">
-        <div class="stats-grid">
-          <article class="stat-card"><span>Projets affichés</span><strong id="statProjects">0</strong></article>
-          <article class="stat-card"><span>BT</span><strong id="statBT">0</strong></article>
-          <article class="stat-card"><span>MT</span><strong id="statMT">0</strong></article>
-          <article class="stat-card"><span>Budget disponible</span><strong id="statBudget">CHF 0</strong></article>
+        <div class="stats-grid dashboard-stats">
+          <article class="stat-card premium-stat">
+            <span>Budget total</span>
+            <strong id="statBudget">CHF 0</strong>
+            <small id="dashboardBudgetAllocation">100% alloué</small>
+            <i class="stat-icon">▣</i>
+          </article>
+          <article class="stat-card premium-stat">
+            <span>Engagé</span>
+            <strong id="statBT">CHF 0</strong>
+            <small id="dashboardCommittedPercent">0% du budget</small>
+            <i class="stat-icon">◔</i>
+          </article>
+          <article class="stat-card premium-stat">
+            <span>Disponible</span>
+            <strong id="statMT">CHF 0</strong>
+            <small id="dashboardAvailablePercent">0% restant</small>
+            <i class="stat-icon">▱</i>
+          </article>
+          <article class="stat-card premium-stat">
+            <span>Projets actifs</span>
+            <strong id="statProjects">0</strong>
+            <small id="dashboardActiveHint">En cours</small>
+            <i class="stat-icon">▤</i>
+          </article>
         </div>
 
-        <div class="toolbar card">
-          <div class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="Rechercher un projet, une commune, un descriptif…" /></div>
-          <select id="filterVoltage" class="control"><option value="">Toutes tensions</option><option value="BT">BT</option><option value="MT">MT</option></select>
-          <select id="filterStatus" class="control"><option value="">Tous états</option><option value="En cours">En cours</option><option value="En attente">En attente</option><option value="En étude">En étude</option><option value="Terminé">Terminé</option><option value="Suspendu">Suspendu</option></select>
-          <select id="filterOwner" class="control"><option value="">Tous les utilisateurs</option></select>
-          <button class="button secondary" id="resetFiltersBtn">Réinitialiser</button>
-          <button class="button secondary" id="exportCsvBtn">CSV</button>
-          <button class="button secondary" id="exportJsonBtn">JSON</button>
-          <label class="button secondary file-button">Importer<input id="importJsonInput" type="file" accept="application/json,.json" /></label>
+        <div class="dashboard-grid">
+          <article class="card dashboard-card budget-preview-card">
+            <div class="dashboard-card-header">
+              <div>
+                <h2>Aperçu budgétaire</h2>
+                <p>Synthèse de tous les projets</p>
+              </div>
+              <div class="dashboard-card-actions">
+                <span class="dashboard-select">Tous les projets⌄</span>
+                <span class="kebab">⋮</span>
+              </div>
+            </div>
+            <div class="budget-preview-layout">
+              <div class="budget-preview-copy">
+                <span class="dashboard-label">Budget total</span>
+                <strong class="dashboard-total" id="dashboardBudgetTotal">CHF 0</strong>
+                <div class="budget-legend-row">
+                  <i class="legend-dot legend-yellow"></i>
+                  <div><span>Engagé</span><strong id="dashboardCommitted">CHF 0</strong></div>
+                  <b id="dashboardCommittedPct">0%</b>
+                </div>
+                <div class="budget-legend-row">
+                  <i class="legend-dot legend-navy"></i>
+                  <div><span>Disponible</span><strong id="dashboardAvailable">CHF 0</strong></div>
+                  <b id="dashboardAvailablePct">0%</b>
+                </div>
+              </div>
+              <div class="budget-donut" id="dashboardDonut" style="--committed:0deg">
+                <div class="budget-donut-center">
+                  <strong id="dashboardDonutValue">CHF 0</strong>
+                  <span>Budget total</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card dashboard-card phases-preview-card">
+            <div class="dashboard-card-header">
+              <div>
+                <h2>Phases à venir</h2>
+                <p>Prochaines phases SIA planifiées</p>
+              </div>
+              <button class="text-link" type="button" id="openGanttDashboard">Voir le Gantt complet ›</button>
+            </div>
+            <div class="phase-preview" id="dashboardPhasePreview">
+              <div class="dashboard-empty">Ajoutez des dates SIA pour afficher les prochaines phases.</div>
+            </div>
+          </article>
         </div>
 
-        <div class="table-card card">
-          <div class="table-scroll">
-            <table class="project-table">
-              <thead><tr><th>N° d’affaire</th><th>Tension</th><th>Commune</th><th>Chantier</th><th>Descriptif</th><th>Responsable</th><th>Budget</th><th>État</th><th></th></tr></thead>
-              <tbody id="projectsTableBody"></tbody>
-            </table>
+        <section class="recent-projects-section">
+          <div class="recent-projects-heading">
+            <div>
+              <h2>Projets récents</h2>
+              <p>Les derniers projets enregistrés</p>
+            </div>
+            <button class="text-link" id="showAllProjectsBtn" type="button">Voir tous les projets ›</button>
           </div>
-          <div class="empty-state hidden" id="projectsEmpty"><div>⚡</div><h3>Aucun projet ne correspond aux filtres</h3><p>Modifiez les filtres ou créez un nouveau projet.</p></div>
-        </div>
+          <div class="recent-projects-list" id="dashboardRecentProjects"></div>
+        </section>
+
+        <section class="new-project-cta card">
+          <div class="new-project-icon">⚡</div>
+          <div>
+            <h2>Nouveau projet</h2>
+            <p>Créez et planifiez un nouveau projet électrique.</p>
+          </div>
+          <button class="button primary cta-create-btn" id="dashboardNewProjectBtn" type="button">Créer un projet <span>＋</span></button>
+        </section>
+
+        <details class="all-projects-card card" id="allProjectsPanel">
+          <summary>
+            <span><strong>Tous les projets</strong><small>Recherche, filtres et gestion détaillée</small></span>
+            <span class="summary-chevron">⌄</span>
+          </summary>
+
+          <div class="all-projects-content">
+            <div class="toolbar">
+              <div class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="Rechercher un N° d’affaire, un projet, une commune…" /></div>
+              <select id="filterVoltage" class="control"><option value="">Toutes tensions</option><option value="BT">BT</option><option value="MT">MT</option></select>
+              <select id="filterStatus" class="control"><option value="">Tous états</option><option value="En cours">En cours</option><option value="En attente">En attente</option><option value="En étude">En étude</option><option value="Terminé">Terminé</option><option value="Suspendu">Suspendu</option></select>
+              <select id="filterOwner" class="control"><option value="">Tous les utilisateurs</option></select>
+              <button class="button secondary" id="resetFiltersBtn">Réinitialiser</button>
+              <button class="button secondary" id="exportCsvBtn">CSV</button>
+              <button class="button secondary" id="exportJsonBtn">JSON</button>
+              <label class="button secondary file-button">Importer<input id="importJsonInput" type="file" accept="application/json,.json" /></label>
+            </div>
+
+            <div class="table-card">
+              <div class="table-scroll">
+                <table class="project-table">
+                  <thead><tr><th>N° d’affaire</th><th>Tension</th><th>Commune</th><th>Chantier</th><th>Descriptif</th><th>Responsable</th><th>Budget</th><th>État</th><th></th></tr></thead>
+                  <tbody id="projectsTableBody"></tbody>
+                </table>
+              </div>
+              <div class="empty-state hidden" id="projectsEmpty"><div>⚡</div><h3>Aucun projet ne correspond aux filtres</h3><p>Modifiez les filtres ou créez un nouveau projet.</p></div>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section class="view" id="ganttView">
-        <div class="toolbar card">
+        <div class="view-heading">
+          <div><h2>Planning Gantt</h2><p>Planning des phases SIA par projet ou pour l’ensemble des projets.</p></div>
+        </div>
+        <div class="toolbar card premium-toolbar">
           <select id="ganttMode" class="control"><option value="all">Tous les projets</option><option value="selected">Projet sélectionné</option></select>
           <select id="ganttOwnerFilter" class="control"><option value="">Tous les utilisateurs</option></select>
           <select id="ganttProjectSelect" class="control"></select>
@@ -89,7 +202,7 @@
           <button class="button secondary" id="ganttNextBtn">Période →</button>
         </div>
 
-        <div class="gantt-card card">
+        <div class="gantt-card card premium-panel">
           <div class="gantt-header-row">
             <div><h2 id="ganttTitle">Planning général</h2><p id="ganttHint">Vue synthétique de tous les projets</p></div>
             <div class="legend"><span><i class="legend-bt"></i> BT</span><span><i class="legend-mt"></i> MT</span><span><i class="legend-phase"></i> Phase SIA</span></div>
@@ -99,22 +212,24 @@
       </section>
 
       <section class="view" id="budgetsView">
+        <div class="view-heading"><div><h2>Budgets des projets</h2><p>Suivi financier prévu, engagé et dépensé.</p></div></div>
         <div class="stats-grid budget-stats">
           <article class="stat-card"><span>Budget total</span><strong id="budgetTotal">CHF 0</strong></article>
           <article class="stat-card"><span>Engagé</span><strong id="budgetCommitted">CHF 0</strong></article>
           <article class="stat-card"><span>Dépensé</span><strong id="budgetActual">CHF 0</strong></article>
           <article class="stat-card"><span>Disponible</span><strong id="budgetRemaining">CHF 0</strong></article>
         </div>
-        <div class="card">
+        <div class="card premium-panel">
           <div class="section-header"><div><h2>Suivi budgétaire</h2><p>Comparaison du budget prévu, engagé et dépensé.</p></div></div>
-          <div class="table-scroll"><table class="project-table"><thead><tr><th>Projet</th><th>Responsable</th><th>Budget prévu</th><th>Engagé</th><th>Dépensé</th><th>Disponible</th><th>Consommation</th></tr></thead><tbody id="budgetTableBody"></tbody></table></div>
+          <div class="table-scroll"><table class="project-table budget-table"><thead><tr><th>Projet</th><th>Responsable</th><th>Budget prévu</th><th>Engagé</th><th>Dépensé</th><th>Disponible</th><th>Consommation</th></tr></thead><tbody id="budgetTableBody"></tbody></table></div>
         </div>
       </section>
 
       <section class="view" id="usersView">
+        <div class="view-heading"><div><h2>Utilisateurs</h2><p>Gestion des responsables et vue multi-utilisateurs.</p></div></div>
         <div class="users-layout">
-          <div class="card"><div class="section-header"><div><h2>Utilisateurs</h2><p>Chaque utilisateur peut disposer de ses propres projets.</p></div><button class="button primary" id="newUserBtn">＋ Ajouter</button></div><div id="usersList" class="users-list"></div></div>
-          <div class="card"><div class="section-header"><div><h2>Vue globale</h2><p>Répartition des projets par utilisateur.</p></div></div><div id="usersSummary" class="users-summary"></div></div>
+          <div class="card premium-panel"><div class="section-header"><div><h2>Utilisateurs</h2><p>Chaque utilisateur peut disposer de ses propres projets.</p></div><button class="button primary" id="newUserBtn">＋ Ajouter</button></div><div id="usersList" class="users-list"></div></div>
+          <div class="card premium-panel"><div class="section-header"><div><h2>Vue globale</h2><p>Répartition des projets par utilisateur.</p></div></div><div id="usersSummary" class="users-summary"></div></div>
         </div>
       </section>
     </main>
@@ -162,6 +277,7 @@
   <div class="toast-container" id="toastContainer"></div>
   <script src="app.js"></script>
   <script src="sia-phases.js"></script>
+  <script src="dashboard-design.js"></script>
   <script src="mobile-ui.js"></script>
 </body>
 </html>
