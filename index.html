@@ -2,11 +2,12 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#f6f7fb" />
   <title>Suivi des projets électriques MT / BT</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="sia-phases.css" />
+  <link rel="stylesheet" href="mobile.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -36,7 +37,7 @@
     <main class="main">
       <header class="topbar">
         <div>
-          <button class="icon-button mobile-only" id="toggleSidebar" title="Menu">☰</button>
+          <button class="icon-button mobile-only" id="toggleSidebar" title="Menu" aria-label="Ouvrir le menu">☰</button>
           <h1 id="pageTitle">Suivi des projets en cours</h1>
           <p id="pageSubtitle">Gestion des projets électriques MT et BT</p>
         </div>
@@ -70,7 +71,7 @@
         <div class="table-card card">
           <div class="table-scroll">
             <table class="project-table">
-              <thead><tr><th>#</th><th>Tension</th><th>Commune</th><th>Chantier</th><th>Descriptif</th><th>Responsable</th><th>Budget</th><th>État</th><th></th></tr></thead>
+              <thead><tr><th>N° d’affaire</th><th>Tension</th><th>Commune</th><th>Chantier</th><th>Descriptif</th><th>Responsable</th><th>Budget</th><th>État</th><th></th></tr></thead>
               <tbody id="projectsTableBody"></tbody>
             </table>
           </div>
@@ -161,5 +162,6 @@
   <div class="toast-container" id="toastContainer"></div>
   <script src="app.js"></script>
   <script src="sia-phases.js"></script>
+  <script src="mobile-ui.js"></script>
 </body>
 </html>
