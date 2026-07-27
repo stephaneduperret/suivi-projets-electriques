@@ -267,10 +267,198 @@
     }
   });
 
+  function setupProjectSorting() {
+    const toolbar = document.querySelector('#allProjectsPanel .toolbar');
+    const tableBody = $('projectsTableBody');
+    if (!toolbar || !tableBody || $('sortProjects')) return;
+
+    const SORT_KEY = 'voe-project-sort-v1';
+    const sortSelect = document.createElement('select');
+    sortSelect.id = 'sortProjects';
+    sortSelect.className = 'control project-sort-control';
+    sortSelect.setAttribute('aria-label', 'Trier les projets');
+    sortSelect.innerHTML = `
+      <option value="affair">Trier : N° d’affaire</option>
+      <option value="owner">Trier : Utilisateur</option>
+      <option value="commune">Trier : Commune</option>
+      <option value="sia">Trier : SIA (phase en cours / prochaine)</option>
+    `;
+
+    const directionButton = document.createElement('button');
+    directionButton.type = 'button';
+    directionButton.id = 'sortDirectionBtn';
+    directionButton.className = 'button secondary project-sort-direction';
+    directionButton.dataset.direction = 'asc';
+
+    const ownerFilter = $('filterOwner');
+    if (ownerFilter) {
+      ownerFilter.insertAdjacentElement('afterend', sortSelect);
+      sortSelect.insertAdjacentElement('afterend', directionButton);
+    } else {
+      toolbar.append(sortSelect, directionButton);
+    }
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .project-sort-control{min-width:205px}
+      .project-sort-direction{min-width:118px}
+      @media(max-width:720px){.project-sort-control,.project-sort-direction{width:100%;min-width:0}}
+    `;
+    document.head.appendChild(style);
+
+    function readSortPreference() {
+      try {
+        const pref = JSON.parse(localStorage.getItem(SORT_KEY) || '{}');
+        if (['affair', 'owner', 'commune', 'sia'].includes(pref.key)) sortSelect.value = pref.key;
+        if (pref.direction === 'desc') directionButton.dataset.direction = 'desc';
+      } catch {}
+    }
+
+    function saveSortPreference() {
+      localStorage.setItem(SORT_KEY, JSON.stringify({
+        key: sortSelect.value,
+        direction: directionButton.dataset.direction
+      }));
+    }
+
+    function updateDirectionButton() {
+      const desc = directionButton.dataset.direction === 'desc';
+      directionButton.textContent = desc ? '↓ Décroissant' : '↑ Croissant';
+      directionButton.title = desc ? 'Passer en ordre croissant' : 'Passer en ordre décroissant';
+      directionButton.setAttribute('aria-label', directionButton.title);
+    }
+
+    function compareText(a, b) {
+      return String(a || '').localeCompare(String(b || ''), 'fr-CH', { numeric: true, sensitivity: 'base' });
+    }
+
+    function siaSortKey(project) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const dated = Object.entries(project?.phases || {}).map(([code, data]) => {
+        const start = parseDate(data?.start || data?.end);
+        const end = parseDate(data?.end || data?.start);
+        return { code: Number(code), start, end };
+      }).filter((phase) => Number.isFinite(phase.code) && phase.start && phase.end);
+
+      if (!dated.length) return null;
+
+      const active = dated
+        .filter((phase) => phase.start <= today && phase.end >= today)
+        .sort((a, b) => b.code - a.code || b.start - a.start)[0];
+
+      const upcoming = dated
+        .filter((phase) => phase.start > today)
+        .sort((a, b) => a.start - b.start || a.code - b.code)[0];
+
+      const latestPast = dated
+        .filter((phase) => phase.end < today)
+        .sort((a, b) => b.code - a.code || b.end - a.end)[0];
+
+      const selected = active || upcoming || latestPast;
+      if (!selected) return null;
+      return { code: selected.code, date: selected.start.getTime() };
+    }
+
+    function projectForRow(row, state) {
+      const id = row.querySelector('[data-edit]')?.dataset.edit;
+      return state.projects.find((project) => project.id === id) || null;
+    }
+
+    function compareProjects(a, b, state) {
+      const key = sortSelect.value;
+      const users = new Map(state.users.map((user) => [user.id, user.name || '']));
+
+      if (key === 'sia') {
+        const aSia = siaSortKey(a);
+        const bSia = siaSortKey(b);
+        if (!aSia && !bSia) return compareText(a?.affairNumber, b?.affairNumber);
+        if (!aSia) return 1;
+        if (!bSia) return -1;
+        return (aSia.code - bSia.code) || (aSia.date - bSia.date) || compareText(a?.affairNumber, b?.affairNumber);
+      }
+
+      if (key === 'owner') {
+        const aOwner = users.get(a?.ownerId) || '';
+        const bOwner = users.get(b?.ownerId) || '';
+        return compareText(aOwner, bOwner) || compareText(a?.affairNumber, b?.affairNumber);
+      }
+
+      if (key === 'commune') {
+        return compareText(a?.commune, b?.commune) || compareText(a?.affairNumber, b?.affairNumber);
+      }
+
+      return compareText(a?.affairNumber, b?.affairNumber);
+    }
+
+    let sortObserver = null;
+    let sortScheduled = false;
+
+    function applyProjectSort() {
+      const rows = [...tableBody.querySelectorAll(':scope > tr')];
+      if (rows.length < 2) return;
+
+      const state = readState();
+      const factor = directionButton.dataset.direction === 'desc' ? -1 : 1;
+      const mapped = rows.map((row, index) => ({
+        row,
+        index,
+        project: projectForRow(row, state)
+      }));
+
+      const sorted = mapped.slice().sort((a, b) => {
+        if (!a.project && !b.project) return a.index - b.index;
+        if (!a.project) return 1;
+        if (!b.project) return -1;
+        const result = compareProjects(a.project, b.project, state);
+        return result === 0 ? a.index - b.index : factor * result;
+      });
+
+      const changed = sorted.some((entry, index) => entry.row !== rows[index]);
+      if (!changed) return;
+
+      sortObserver?.disconnect();
+      const fragment = document.createDocumentFragment();
+      sorted.forEach((entry) => fragment.appendChild(entry.row));
+      tableBody.appendChild(fragment);
+      sortObserver?.observe(tableBody, { childList: true });
+    }
+
+    function scheduleSort() {
+      if (sortScheduled) return;
+      sortScheduled = true;
+      requestAnimationFrame(() => {
+        sortScheduled = false;
+        applyProjectSort();
+      });
+    }
+
+    readSortPreference();
+    updateDirectionButton();
+
+    sortSelect.addEventListener('change', () => {
+      saveSortPreference();
+      scheduleSort();
+    });
+
+    directionButton.addEventListener('click', () => {
+      directionButton.dataset.direction = directionButton.dataset.direction === 'asc' ? 'desc' : 'asc';
+      updateDirectionButton();
+      saveSortPreference();
+      scheduleSort();
+    });
+
+    sortObserver = new MutationObserver(scheduleSort);
+    sortObserver.observe(tableBody, { childList: true });
+    scheduleSort();
+  }
+
   const tableBody = $('projectsTableBody');
   if (tableBody) new MutationObserver(scheduleRefresh).observe(tableBody, { childList: true });
   window.addEventListener('storage', scheduleRefresh);
   window.addEventListener('pageshow', scheduleRefresh);
 
+  setupProjectSorting();
   renderDashboard();
 })();
