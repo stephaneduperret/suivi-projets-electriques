@@ -1,1 +1,1 @@
-test
+window.EXCEL_PROJECTS_SEED={version:'2026-06-02',users:['BROYON','DUPERRET','HAUTIER','MERMOUD','SCHLUCHTER'],rows:[]};
