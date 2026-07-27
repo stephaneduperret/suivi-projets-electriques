@@ -28,7 +28,13 @@
   const state = readState();
   if (state.excelSeedVersion === seed.version) return;
 
-  state.users = state.users.filter((user) => user && user.id);
+  // Retire uniquement les trois projets de démonstration livrés avec la première version.
+  state.projects = state.projects.filter((project) => !['p1', 'p2', 'p3'].includes(project?.id));
+
+  // Retire les utilisateurs de démonstration seulement s'ils ne sont plus utilisés par un projet personnel.
+  const referencedOwners = new Set(state.projects.map((project) => project?.ownerId).filter(Boolean));
+  state.users = state.users.filter((user) => user && user.id && (!['u1', 'u2'].includes(user.id) || referencedOwners.has(user.id)));
+
   seed.users.forEach((name) => {
     const id = userId(name);
     const existing = state.users.find((user) => user.id === id || String(user.name || '').toUpperCase() === name);
@@ -41,9 +47,6 @@
       state.users.push({ id, name, role: 'Responsable', initials: name.slice(0, 2).toUpperCase() });
     }
   });
-
-  // Retire uniquement les trois exemples livrés avec la première version du site.
-  state.projects = state.projects.filter((project) => !['p1', 'p2', 'p3'].includes(project?.id));
 
   const existingByNumber = new Map(state.projects.map((project) => [String(project.affairNumber || ''), project]));
 
