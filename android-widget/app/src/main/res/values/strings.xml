@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Projets électriques</string>
+    <string name="widget_description">Grand widget 4×4 pour le suivi des projets électriques MT / BT.</string>
+</resources>
