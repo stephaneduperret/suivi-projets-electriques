@@ -3,6 +3,7 @@
 
   const KEY = 'voe-project-manager-v1';
   const seed = window.EXCEL_PROJECTS_SEED;
+  window.EXCEL_IMPORT_APPLIED = false;
   if (!seed || !Array.isArray(seed.rows) || !seed.rows.length) return;
 
   const slug = (value) => String(value || '')
@@ -84,4 +85,5 @@
 
   state.excelSeedVersion = seed.version;
   localStorage.setItem(KEY, JSON.stringify(state));
+  window.EXCEL_IMPORT_APPLIED = true;
 })();
