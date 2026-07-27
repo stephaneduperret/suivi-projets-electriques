@@ -34,6 +34,7 @@
       await loadScript('dashboard-today-marker.js');
       await loadScript('gantt-filters.js');
       await loadScript('gantt-project-edit.js');
+      await loadScript('gantt-phase-filter.js');
     } catch (error) {
       console.warn('Tableau de bord utilisateur :', error);
     }
