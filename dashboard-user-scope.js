@@ -32,6 +32,7 @@
     try {
       await loadScript('https://cdn.jsdelivr.net/gh/stephaneduperret/suivi-projets-electriques@1468bf2713069ef65314a1b8bea7477294d82454/dashboard-user-scope.js');
       await loadScript('dashboard-today-marker.js');
+      await loadScript('gantt-filters.js');
     } catch (error) {
       console.warn('Tableau de bord utilisateur :', error);
     }
