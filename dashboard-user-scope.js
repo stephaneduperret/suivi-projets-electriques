@@ -31,6 +31,7 @@
     // Conserve le tableau de bord par utilisateur de la version précédente.
     try {
       await loadScript('https://cdn.jsdelivr.net/gh/stephaneduperret/suivi-projets-electriques@1468bf2713069ef65314a1b8bea7477294d82454/dashboard-user-scope.js');
+      await loadScript('dashboard-today-marker.js');
     } catch (error) {
       console.warn('Tableau de bord utilisateur :', error);
     }
